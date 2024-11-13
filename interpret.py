@@ -2,35 +2,17 @@ from __future__ import annotations
 from PIL import Image
 import os
 import sys
-# from typing import Any, Callable, Dict, List, Tuple
 from dataclasses import dataclass
-# import numba
-import functools
 import math
-# from cachetools import cached
-# from cachetools.keys import hashkey
 
-
-# sys.setrecursionlimit(10000)
-# sys.setrecursionlimit(100000)
 sys.setrecursionlimit(1000000)
 
-# file = "programs/4.png"
-# program_file = "programs/x_plus_y.png"
-# program_file = "programs/x_plus_y_2.png"
-# program_file = "programs/x_plus_2.png"
-# program_file = "programs/x_sq_plus_y_sq.png"
-# program_file = "programs/labels.png"
-# program_file = "programs/smiley.png"
-# program_file = "programs/fac.png"
-# program_file = "programs/neg4.png"
-# program_file = "programs/mandelbrot.png"
-# program_file = "programs/mandelbrot_slider.png"
-# program_file = "programs/mandelbrot_slider_large.png"
-# program_file = "programs/mandelbrot_slider_small.png"
-# program_file = "programs/tree.png"
-# program_file = "programs/line.png"
 program_file = "programs/sierpinski.png"
+output_file = "output.png"
+if len(sys.argv) > 1:
+    program_file = sys.argv[1]
+if len(sys.argv) > 2:
+    output_file = sys.argv[2]
 
 library_folder = "images"
 library = []
@@ -94,20 +76,11 @@ for y in range(0, h, base_grid):
                 break
         if found is None:
             found = empty_tile
-        # if x == 2*base_grid and y == 2*base_grid:
-        #     print(tile)
-        #     print(found)
-        #     # print tile named "functions/entry"
-        #     print([x for name, x in library if name == "functions/entry"][0])
         row.append(found)
         data_row.append(tile)
     tiles.append(row)
     tile_data.append(data_row)
     
-# print tiles
-# for row in tiles:
-#     print(" ".join(row))
-
 def position(x,y):
     return f"{x}, {y} ({x*base_grid}, {y*base_grid})"
 
@@ -119,14 +92,11 @@ class Canvas:
     data: list[list[int]] 
     
     def set(self, x, y, value):
-        # self.data[y][x] = value
-        # return Canvas(self.position, self.size, self.data)
         new_data = [[v for v in row] for row in self.data]
         new_data[y][x] = value
         return Canvas(None, self.size, new_data)
         
     
-# @functools.lru_cache(maxsize=None)
 def get_canvas(x, y):
     if tiles[y][x] != "canvas":
         return None
@@ -190,17 +160,11 @@ number_tiles = {
     "functions/sub": "-",
 } | {f"functions/{i}": str(i) for i in range(10)}
 
-# @functools.lru_cache(maxsize=None)
 def get_number(x, y):
-    # number_tiles = [
-    #     ("functions/dot", "."),
-    # ]+[(f"functions/{i}", str(i)) for i in range(10)]
-    # as map
     s = ""
     while tiles[y][x] in number_tiles:
         s += number_tiles[tiles[y][x]]
         x += 1
-    # print(f"Number at {x}, {y} is {s}")
     if s == "":
         return None
     try:
@@ -211,7 +175,6 @@ def get_number(x, y):
         except ValueError:
             return None
         
-# @functools.lru_cache(maxsize=None)
 def get_slider_value(x, y):
     l_pos = x
     m_pos = None
@@ -228,8 +191,6 @@ def get_slider_value(x, y):
         print(f"Error: no right slider found at {position(x,y)}", file=sys.stderr)
         return None
     r_pos = px
-    # l_value = get_value(l_pos, y-1, "n", mapping)
-    # r_value = get_value(r_pos, y-1, "s", mapping)
     l_value = get_number(l_pos, y-1)
     r_value = get_number(r_pos, y-1)
     if l_value is None:
@@ -238,14 +199,10 @@ def get_slider_value(x, y):
     if r_value is None:
         print(f"Error: no right value found at {position(r_pos,y-1)}", file=sys.stderr)
         return None
-    # alpha = (m_pos - l_pos) / (r_pos - l_pos)
     alpha = (m_pos - (l_pos+1)) / ((r_pos-1) - (l_pos+1))
     v = l_value + alpha * (r_value - l_value)
-    # print(f"Slider from {l_pos} to {r_pos} with values {l_value} to {r_value} results in {v}")
     return v
         
-# @functools.lru_cache(maxsize=None)
-# @cached(cache={}, key=lambda x,y,direction,mapping: hashkey(x,y,direction))
 def get_value(x, y, direction, mapping):
     if (x, y) in mapping:
         return mapping[(x, y)]
@@ -322,14 +279,6 @@ def get_value(x, y, direction, mapping):
     if tile == "lambda":
         local_x = x
         local_y = y
-        # or use capture syntax lambda arg, lx=x, ly=y: ...
-        # return lambda arg: get_value(local_x+2, local_y, "none", mapping | {(local_x+1,local_y): arg})
-        
-        # def Y(f):
-        #     return f(Y(f))
-        # Y = lambda f: (lambda x: x(x))(lambda x: f(lambda *args: x(x)(*args)))
-        # f = lambda f: lambda arg: get_value(local_x+2, local_y, "none", mapping | {(local_x+1,local_y): arg} | {(local_x,local_y): f})
-        # return Y(f)
         
         def f(arg):
             return get_value(local_x+2, local_y, "none", mapping | {(local_x+1,local_y): arg} | {(local_x,local_y): f})
@@ -339,8 +288,6 @@ def get_value(x, y, direction, mapping):
         content = get_value(x+1, y, "none", mapping)
         ret = get_value(x+2, y, "none", mapping)
         return content, ret
-        # print(f"Entry point at ({x}, {y}) evaluates to {content}")
-        # return None
         
     # slider
     if tile == "functions/slider_l":
@@ -408,28 +355,6 @@ def get_value(x, y, direction, mapping):
     
     print(f"Wrong side {direction} at {position(x,y)} for tile {tile} (or {tile} is not implemented)", file=sys.stderr)
     
-# 4.png
-# print(get_value(5, 2)) # canvas
-# print(get_value(4, 2)) # canvas line
-# print(get_value(3, 2)) # first argument
-
-# x plus y
-# print(get_value(4, 2, "none", {})(2)) # inner lambda
-# print(get_value(2, 2, "none", {})(2)(3)) # lambda
-# print(get_value(3, 4)) # plus
-# print(get_value(7, 8, "none", {})) # (fun x y -> + x y) 5 3
-# print(get_value(7, 12, "none", {})) # (fun x y -> + x y) 4 6
-
-# x plus 2
-# print(get_value(4, 2, "none", {})(2)) # inner lambda
-
-# x plus y 2
-# print(get_value(3, 3, "w")(2)) # app + 5
-# print(get_value(7, 2, "none", {})) # node for + 5 3
-
-# for row in tiles:
-#     print(" ".join(row))
-
 labels = []
 for y, row in enumerate(tiles):
     for x, tile in enumerate(row):
@@ -448,7 +373,6 @@ for y, row in enumerate(tile_data):
                 break
         if found is not None:
             mapping[(x, y)] = found
-            # print(f"Label at ({x}, {y}) evaluates to {found}")
         
 # copy of the input image
 outimg = Image.open(program_file)
@@ -474,16 +398,6 @@ for y, row in enumerate(tiles):
             # for canvas data, we set the ret canvas
             if isinstance(data, Canvas):
                 print(f"Entry point at ({position(x,y)}) evaluates to a canvas")
-                # print("Canvas")
-                # write the data to tmp.png
-                # img = Image.new("RGBA", (data.size[0], data.size[1]))
-                # imgdata = []
-                # for ty, row in enumerate(data.data):
-                #     for tx, value in enumerate(row):
-                #         pixel = black if value == 1 else (255, 255, 255, 255)
-                #         imgdata.append(pixel)
-                # img.putdata(imgdata)
-                # img.save("tmp.png")
                 # TODO: crop to canvas size
                 for ty, row in enumerate(data.data):
                     for tx, value in enumerate(row):
@@ -519,4 +433,4 @@ for y, row in enumerate(tiles):
                 
             
 outimg.putdata(outdata)
-outimg.save("output.png")
+outimg.save(output_file)
